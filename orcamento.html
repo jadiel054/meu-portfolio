@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Calculadora de Orçamento — Jadiel Silva</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#080808;--dark:#111;--card:#161616;--card2:#1c1c1c;
+  --gold:#c9a84c;--gold2:#e8c97a;--gold3:#8a6e2f;
+  --green:#2ecc71;--cream:#f5edd8;--muted:#7a7060;--light:#d4c9b0;
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--cream);min-height:100vh;overflow-x:hidden}
+
+/* GRAIN */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");opacity:.5}
+
+/* HEADER */
+.header{position:relative;z-index:1;text-align:center;padding:3rem 1.5rem 2rem;background:linear-gradient(180deg,#0e0c08 0%,transparent 100%)}
+.header-tag{font-size:.6rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);margin-bottom:.8rem;display:flex;align-items:center;justify-content:center;gap:.8rem}
+.header-tag::before,.header-tag::after{content:'';width:2rem;height:1px;background:var(--gold)}
+.header h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,5vw,2.8rem);color:var(--cream);line-height:1.1;margin-bottom:.6rem}
+.header h1 em{color:var(--gold);font-style:italic}
+.header p{font-size:.88rem;color:var(--muted);max-width:400px;margin:0 auto;line-height:1.7}
+
+/* PROGRESS */
+.progress-wrap{padding:1.5rem 1.5rem 0;max-width:680px;margin:0 auto;position:relative;z-index:1}
+.progress-steps{display:flex;justify-content:space-between;margin-bottom:.6rem;position:relative}
+.progress-steps::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(201,168,76,0.15);transform:translateY(-50%);z-index:0}
+.progress-line{position:absolute;top:50%;left:0;height:1px;background:var(--gold);transform:translateY(-50%);z-index:1;transition:width .5s ease}
+.step-dot{width:28px;height:28px;border-radius:50%;border:1px solid rgba(201,168,76,0.25);background:var(--black);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--muted);position:relative;z-index:2;transition:all .4s;flex-shrink:0}
+.step-dot.active{border-color:var(--gold);color:var(--gold);background:#111008}
+.step-dot.done{border-color:var(--green);background:var(--green);color:white}
+.progress-labels{display:flex;justify-content:space-between}
+.prog-label{font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:center;flex:1;transition:color .3s}
+.prog-label.active{color:var(--gold)}
+
+/* MAIN */
+.main{max-width:680px;margin:0 auto;padding:1.5rem;position:relative;z-index:1}
+
+/* STEP SECTIONS */
+.step-section{display:none;animation:fadeUp .4s ease}
+.step-section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.step-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--cream);margin-bottom:.4rem}
+.step-sub{font-size:.85rem;color:var(--muted);margin-bottom:1.8rem;line-height:1.6}
+
+/* OPTIONS */
+.options{display:flex;flex-direction:column;gap:.8rem;margin-bottom:1.5rem}
+.opt{display:flex;align-items:flex-start;gap:1rem;background:var(--card);border:1px solid rgba(201,168,76,0.08);border-radius:12px;padding:1.2rem 1.2rem;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;user-select:none}
+.opt::before{content:'';position:absolute;inset:0;background:rgba(201,168,76,0.04);opacity:0;transition:opacity .3s}
+.opt:hover::before{opacity:1}
+.opt.selected{border-color:rgba(201,168,76,0.5);background:linear-gradient(135deg,#1a1610,#141008)}
+.opt.selected::after{content:'✓';position:absolute;top:.8rem;right:1rem;width:22px;height:22px;border-radius:50%;background:var(--gold);color:var(--black);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.opt-icon{font-size:1.5rem;flex-shrink:0;margin-top:.1rem}
+.opt-info{flex:1}
+.opt-name{font-size:.92rem;font-weight:500;color:var(--cream);margin-bottom:.2rem}
+.opt-desc{font-size:.78rem;color:var(--muted);line-height:1.5}
+.opt-price{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);flex-shrink:0;white-space:nowrap;margin-top:.1rem}
+
+/* TOGGLES */
+.toggles{display:flex;flex-direction:column;gap:.8rem;margin-bottom:1.5rem}
+.toggle-item{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--card);border:1px solid rgba(201,168,76,0.08);border-radius:12px;padding:1.1rem 1.2rem;cursor:pointer;transition:all .3s}
+.toggle-item.on{border-color:rgba(201,168,76,0.35);background:linear-gradient(135deg,#181408,#120e06)}
+.toggle-left{display:flex;align-items:center;gap:.9rem;flex:1}
+.toggle-icon{font-size:1.3rem;flex-shrink:0}
+.toggle-info{}
+.toggle-name{font-size:.88rem;font-weight:500;color:var(--cream);margin-bottom:.15rem}
+.toggle-desc{font-size:.75rem;color:var(--muted);line-height:1.4}
+.toggle-right{display:flex;flex-direction:column;align-items:flex-end;gap:.3rem;flex-shrink:0}
+.toggle-price{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--gold);white-space:nowrap}
+.toggle-switch{width:40px;height:22px;border-radius:11px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.2);position:relative;transition:all .3s;flex-shrink:0}
+.toggle-switch::after{content:'';width:16px;height:16px;border-radius:50%;background:var(--muted);position:absolute;top:2px;left:2px;transition:all .3s}
+.toggle-item.on .toggle-switch{background:rgba(201,168,76,0.3);border-color:var(--gold)}
+.toggle-item.on .toggle-switch::after{left:20px;background:var(--gold)}
+
+/* PRICE DISPLAY */
+.price-display{background:linear-gradient(135deg,#1a1610,#110e08);border:1px solid rgba(201,168,76,0.2);border-radius:16px;padding:1.8rem;margin-bottom:1.5rem;position:sticky;top:1rem}
+.price-label{font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:.4rem}
+.price-total{font-family:'Playfair Display',serif;font-size:3rem;color:var(--cream);line-height:1;transition:all .3s}
+.price-note{font-size:.72rem;color:var(--muted);margin-top:.4rem}
+.price-items-list{margin-top:1rem;display:flex;flex-direction:column;gap:.4rem;border-top:1px solid rgba(201,168,76,0.1);padding-top:.8rem}
+.price-line{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted)}
+.price-line span:last-child{color:var(--gold)}
+.price-line.base span:first-child{color:var(--cream)}
+
+/* NAV BUTTONS */
+.nav-btns{display:flex;gap:.8rem;margin-top:1rem}
+.nbtn{flex:1;padding:.9rem;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .3s;border:none}
+.nbtn-prev{background:rgba(201,168,76,0.08);color:var(--gold);border:1px solid rgba(201,168,76,0.2)}
+.nbtn-prev:hover{background:rgba(201,168,76,0.15)}
+.nbtn-next{background:var(--gold);color:var(--black)}
+.nbtn-next:hover{background:var(--gold2);transform:translateY(-1px)}
+.nbtn-next:disabled{opacity:.4;pointer-events:none}
+
+/* RESULT */
+.result-header{text-align:center;margin-bottom:2rem}
+.result-emoji{font-size:3rem;margin-bottom:.8rem;display:block}
+.result-title{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--cream);margin-bottom:.5rem}
+.result-sub{font-size:.85rem;color:var(--muted);line-height:1.7}
+
+.result-card{background:linear-gradient(135deg,#1a1610,#110e08);border:1px solid rgba(201,168,76,0.25);border-radius:16px;padding:2rem;margin-bottom:1.2rem}
+.result-total-label{font-size:.62rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:.4rem}
+.result-total{font-family:'Playfair Display',serif;font-size:3.5rem;color:var(--cream);line-height:1;margin-bottom:.5rem}
+.result-range{font-size:.8rem;color:var(--muted)}
+
+.result-breakdown{background:var(--card);border:1px solid rgba(201,168,76,0.08);border-radius:12px;padding:1.4rem;margin-bottom:1rem}
+.rb-title{font-size:.62rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:.8rem}
+.rb-item{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(201,168,76,0.06)}
+.rb-item:last-child{border-bottom:none}
+.rb-name{font-size:.83rem;color:var(--light)}
+.rb-val{font-size:.83rem;color:var(--gold);font-weight:500}
+
+.result-payment{background:var(--card);border:1px solid rgba(201,168,76,0.08);border-radius:12px;padding:1.4rem;margin-bottom:1rem}
+.rp-title{font-size:.62rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}
+.rp-row{display:flex;gap:1rem}
+.rp-part{flex:1;text-align:center;padding:1rem;background:rgba(201,168,76,0.06);border-radius:8px}
+.rp-part-val{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--gold);display:block;margin-bottom:.2rem}
+.rp-part-label{font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.rp-arrow{display:flex;align-items:center;color:var(--gold3);font-size:1.2rem}
+
+.wa-btn{display:flex;align-items:center;justify-content:center;gap:.8rem;width:100%;padding:1.1rem;background:#25D366;color:white;border-radius:10px;text-decoration:none;font-size:.82rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;transition:all .3s;margin-bottom:.8rem;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.wa-btn:hover{background:#2ee86e;transform:translateY(-1px)}
+.wa-btn svg{width:20px;height:20px;fill:white;flex-shrink:0}
+
+.restart-btn{display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;padding:.9rem;background:rgba(201,168,76,0.08);color:var(--gold);border-radius:10px;font-size:.72rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;transition:all .3s;border:1px solid rgba(201,168,76,0.2);cursor:pointer;font-family:'DM Sans',sans-serif}
+.restart-btn:hover{background:rgba(201,168,76,0.15)}
+
+/* INPUT FIELDS */
+.input-group{margin-bottom:1rem}
+.input-label{font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem;display:block}
+.input-field{width:100%;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:10px;padding:.9rem 1.1rem;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:300;outline:none;transition:border-color .3s}
+.input-field:focus{border-color:rgba(201,168,76,0.4)}
+.input-field::placeholder{color:var(--muted)}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+@media(max-width:480px){.input-row{grid-template-columns:1fr}}
+
+/* DEADLINE CARD */
+.deadline-card{background:rgba(46,204,113,0.07);border:1px solid rgba(46,204,113,0.2);border-radius:12px;padding:1.2rem 1.4rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem}
+.deadline-icon{font-size:1.5rem;flex-shrink:0}
+.deadline-label{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin-bottom:.2rem}
+.deadline-val{font-size:.95rem;color:var(--cream);font-weight:500}
+
+/* VALIDATION */
+.val-msg{font-size:.75rem;color:var(--gold);background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:.7rem 1rem;margin-bottom:1rem;display:none}
+.val-msg.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-tag">Orçamento inteligente</div>
+  <h1>Monte seu <em>site</em><br>e veja o preço</h1>
+  <p>Responda as perguntas abaixo e receba um orçamento personalizado em instantes.</p>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-steps">
+    <div class="progress-line" id="progressLine" style="width:0%"></div>
+    <div class="step-dot active" id="dot0">1</div>
+    <div class="step-dot" id="dot1">2</div>
+    <div class="step-dot" id="dot2">3</div>
+    <div class="step-dot" id="dot3">4</div>
+    <div class="step-dot" id="dot4">✓</div>
+  </div>
+  <div class="progress-labels">
+    <span class="prog-label active" id="lbl0">Tipo</span>
+    <span class="prog-label" id="lbl1">Páginas</span>
+    <span class="prog-label" id="lbl2">Extras</span>
+    <span class="prog-label" id="lbl3">Suporte</span>
+    <span class="prog-label" id="lbl4">Resultado</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- STEP 1: TIPO DE NEGÓCIO -->
+  <div class="step-section active" id="step0">
+    <div class="step-title">Vamos começar!</div>
+    <div class="step-sub">Preencha seus dados e selecione o tipo de negócio.</div>
+    <div class="input-row" style="margin-bottom:1rem">
+      <div class="input-group">
+        <label class="input-label">Seu nome</label>
+        <input type="text" class="input-field" id="clienteName" placeholder="Ex: João Silva"/>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Nome do negócio</label>
+        <input type="text" class="input-field" id="clienteNegocio" placeholder="Ex: Restaurante do João"/>
+      </div>
+    </div>
+    <div class="val-msg" id="val0">Por favor, preencha seu nome e selecione o tipo de negócio.</div>
+    <div class="options" id="opts-tipo">
+      <div class="opt" data-val="restaurante" data-price="800" onclick="selectOpt('tipo',this)">
+        <span class="opt-icon">🍽️</span>
+        <div class="opt-info">
+          <div class="opt-name">Restaurante / Churrascaria</div>
+          <div class="opt-desc">Cardápio, galeria, reservas, horários e localização</div>
+        </div>
+        <div class="opt-price">R$ 800</div>
+      </div>
+      <div class="opt" data-val="advocacia" data-price="900" onclick="selectOpt('tipo',this)">
+        <span class="opt-icon">⚖️</span>
+        <div class="opt-info">
+          <div class="opt-name">Escritório de Advocacia</div>
+          <div class="opt-desc">Áreas de atuação, equipe, processo e formulário de contato</div>
+        </div>
+        <div class="opt-price">R$ 900</div>
+      </div>
+      <div class="opt" data-val="clinica" data-price="900" onclick="selectOpt('tipo',this)">
+        <span class="opt-icon">🏥</span>
+        <div class="opt-info">
+          <div class="opt-name">Clínica / Consultório</div>
+          <div class="opt-desc">Especialidades, equipe, agendamento e localização</div>
+        </div>
+        <div class="opt-price">R$ 900</div>
+      </div>
+      <div class="opt" data-val="comercio" data-price="750" onclick="selectOpt('tipo',this)">
+        <span class="opt-icon">🏪</span>
+        <div class="opt-info">
+          <div class="opt-name">Comércio / Loja</div>
+          <div class="opt-desc">Produtos, promoções, contato e localização</div>
+        </div>
+        <div class="opt-price">R$ 750</div>
+      </div>
+      <div class="opt" data-val="servicos" data-price="700" onclick="selectOpt('tipo',this)">
+        <span class="opt-icon">🛠️</span>
+        <div class="opt-info">
+          <div class="opt-name">Prestador de Serviços</div>
+          <div class="opt-desc">Portfólio, serviços, depoimentos e contato</div>
+        </div>
+        <div class="opt-price">R$ 700</div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="nbtn nbtn-next" onclick="nextStep(0)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: PÁGINAS / SEÇÕES -->
+  <div class="step-section" id="step1">
+    <div class="step-title">Quais seções seu site precisa?</div>
+    <div class="step-sub">Marque tudo que deseja incluir. Cada item soma ao valor final.</div>
+    <div class="toggles" id="toggles-paginas">
+      <div class="toggle-item on" data-key="home" data-price="0" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">🏠</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Página inicial (Hero)</div>
+            <div class="toggle-desc">Apresentação principal com chamada para ação</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">Incluso</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item on" data-key="sobre" data-price="0" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">📖</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Sobre / Quem somos</div>
+            <div class="toggle-desc">História, valores e diferenciais do negócio</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">Incluso</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item on" data-key="contato" data-price="0" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">📞</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Contato e Localização</div>
+            <div class="toggle-desc">WhatsApp, e-mail, endereço e mapa</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">Incluso</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="galeria" data-price="150" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">📸</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Galeria de fotos</div>
+            <div class="toggle-desc">Grid de imagens do ambiente, pratos ou produtos</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 150</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="cardapio" data-price="150" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">📋</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Cardápio / Serviços com filtros</div>
+            <div class="toggle-desc">Lista filtrável por categoria com preços</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 150</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="depoimentos" data-price="100" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">⭐</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Depoimentos / Avaliações</div>
+            <div class="toggle-desc">Seção com avaliações de clientes reais</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 100</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="equipe" data-price="100" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">👥</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Equipe / Profissionais</div>
+            <div class="toggle-desc">Cards com foto, nome e especialidade da equipe</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 100</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="reserva" data-price="120" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">📅</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Formulário de reserva / agendamento</div>
+            <div class="toggle-desc">Formulário com data, horário e número de pessoas</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 120</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="nbtn nbtn-prev" onclick="prevStep(1)">← Anterior</button>
+      <button class="nbtn nbtn-next" onclick="nextStep(1)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: EXTRAS -->
+  <div class="step-section" id="step2">
+    <div class="step-title">Recursos extras</div>
+    <div class="step-sub">Itens que elevam a qualidade e a profissionalidade do site.</div>
+    <div class="toggles" id="toggles-extras">
+      <div class="toggle-item on" data-key="responsivo" data-price="0" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">📱</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Responsivo (celular + PC)</div>
+            <div class="toggle-desc">Funciona perfeitamente em qualquer tela</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">Incluso</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item on" data-key="whatsapp" data-price="0" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">💬</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Botão flutuante WhatsApp</div>
+            <div class="toggle-desc">Botão fixo que abre o WhatsApp em todas as páginas</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">Incluso</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="animacoes" data-price="120" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">✨</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Animações premium</div>
+            <div class="toggle-desc">Efeitos de entrada, hover e transições sofisticadas</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 120</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="mapa" data-price="80" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">📍</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Mapa integrado (Google Maps)</div>
+            <div class="toggle-desc">Mapa interativo com localização exata do negócio</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 80</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="dominio" data-price="80" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">🌐</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Configuração de domínio próprio</div>
+            <div class="toggle-desc">Ex: seunegocio.com.br — registro no Registro.br por conta do cliente (~R$ 40/ano)</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 80</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="seo" data-price="100" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">🔍</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Otimização para Google (SEO básico)</div>
+            <div class="toggle-desc">Títulos, descrições e palavras-chave para aparecer no Google</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 100</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+      <div class="toggle-item" data-key="logo" data-price="150" onclick="toggleItem(this)">
+        <div class="toggle-left">
+          <span class="toggle-icon">🎨</span>
+          <div class="toggle-info">
+            <div class="toggle-name">Identidade visual / Logo</div>
+            <div class="toggle-desc">Criação ou adaptação de logo e paleta de cores</div>
+          </div>
+        </div>
+        <div class="toggle-right">
+          <span class="toggle-price">+ R$ 150</span>
+          <div class="toggle-switch"></div>
+        </div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="nbtn nbtn-prev" onclick="prevStep(2)">← Anterior</button>
+      <button class="nbtn nbtn-next" onclick="nextStep(2)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: SUPORTE -->
+  <div class="step-section" id="step3">
+    <div class="step-title">Suporte e manutenção</div>
+    <div class="step-sub">Como prefere o acompanhamento após a entrega do site?</div>
+    <div class="val-msg" id="val3">Por favor, selecione uma opção para continuar.</div>
+    <div class="options" id="opts-suporte">
+      <div class="opt" data-val="sem" data-price="0" onclick="selectOpt('suporte',this)">
+        <span class="opt-icon">🚀</span>
+        <div class="opt-info">
+          <div class="opt-name">Só a entrega — sem mensalidade</div>
+          <div class="opt-desc">Suporte por 30 dias incluído. Alterações futuras cobradas por demanda.</div>
+        </div>
+        <div class="opt-price">+ R$ 0</div>
+      </div>
+      <div class="opt" data-val="basico" data-price="120" onclick="selectOpt('suporte',this)">
+        <span class="opt-icon">🛡️</span>
+        <div class="opt-info">
+          <div class="opt-name">Plano Básico — R$ 120/mês</div>
+          <div class="opt-desc">Até 2 atualizações por mês (textos, preços, horários) + suporte prioritário.</div>
+        </div>
+        <div class="opt-price">+ R$ 120/mês</div>
+      </div>
+      <div class="opt" data-val="completo" data-price="200" onclick="selectOpt('suporte',this)">
+        <span class="opt-icon">⭐</span>
+        <div class="opt-info">
+          <div class="opt-name">Plano Completo — R$ 200/mês</div>
+          <div class="opt-desc">Atualizações ilimitadas + novas fotos + pequenas melhorias + suporte imediato.</div>
+        </div>
+        <div class="opt-price">+ R$ 200/mês</div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="nbtn nbtn-prev" onclick="prevStep(3)">← Anterior</button>
+      <button class="nbtn nbtn-next" onclick="nextStep(3)">Ver orçamento →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: RESULTADO -->
+  <div class="step-section" id="step4">
+    <div class="result-header">
+      <span class="result-emoji">🎉</span>
+      <div class="result-title" id="resultTitle">Seu orçamento está pronto!</div>
+      <div class="result-sub">Baseado nas suas escolhas, aqui está o investimento estimado.</div>
+    </div>
+
+    <div class="deadline-card">
+      <span class="deadline-icon">📅</span>
+      <div>
+        <div class="deadline-label">Prazo estimado de entrega</div>
+        <div class="deadline-val" id="deadlineVal">—</div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-total-label">Investimento total estimado</div>
+      <div class="result-total" id="resultTotal">R$ 0</div>
+      <div class="result-range" id="resultRange"></div>
+    </div>
+
+    <div class="result-breakdown" id="resultBreakdown">
+      <div class="rb-title">Detalhamento</div>
+      <div id="rbItems"></div>
+    </div>
+
+    <div class="result-payment" id="resultPayment">
+      <div class="rp-title">Forma de pagamento sugerida</div>
+      <div class="rp-row">
+        <div class="rp-part">
+          <span class="rp-part-val" id="pay1">R$ 0</span>
+          <span class="rp-part-label">Entrada (50%)</span>
+        </div>
+        <div class="rp-arrow">→</div>
+        <div class="rp-part">
+          <span class="rp-part-val" id="pay2">R$ 0</span>
+          <span class="rp-part-label">Na entrega (50%)</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="maintenanceInfo" style="display:none;margin-bottom:1rem">
+      <div class="result-breakdown">
+        <div class="rb-title">Manutenção mensal</div>
+        <div class="rb-item">
+          <span class="rb-name" id="maintName">Plano</span>
+          <span class="rb-val" id="maintVal">R$ 0/mês</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="wa-btn" onclick="sendToWhatsApp()">
+      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Solicitar orçamento pelo WhatsApp
+    </button>
+
+    <button class="restart-btn" onclick="restart()">↺ Refazer o orçamento</button>
+
+    <div style="margin-top:1rem;padding:1rem 1.2rem;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.12);border-radius:10px;font-size:.75rem;color:var(--muted);line-height:1.7;text-align:center;">
+      ⚠️ Este é um <strong style="color:var(--light)">orçamento estimado</strong>. O valor final será confirmado após nossa conversa pelo WhatsApp, onde ajustamos os detalhes do seu projeto.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// STATE
+const state = {
+  tipo: { val: null, price: 0 },
+  suporte: { val: null, price: 0 },
+  paginas: {},
+  extras: {}
+};
+
+// SELECT SINGLE OPTION
+function selectOpt(group, el) {
+  const container = el.parentElement;
+  container.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  state[group].val = el.dataset.val;
+  state[group].price = parseInt(el.dataset.price) || 0;
+}
+
+// TOGGLE ITEM
+function toggleItem(el) {
+  const key = el.dataset.key;
+  const price = parseInt(el.dataset.price) || 0;
+  const isOn = el.classList.toggle('on');
+
+  // Determine group
+  const parent = el.parentElement;
+  const group = parent.id.includes('paginas') ? 'paginas' : 'extras';
+
+  if (price === 0) return; // Included items can't be toggled off meaningfully for price
+
+  if (isOn) {
+    state[group][key] = price;
+  } else {
+    delete state[group][key];
+  }
+}
+
+// CALCULATE TOTAL
+function calcTotal() {
+  let total = state.tipo.price;
+  Object.values(state.paginas).forEach(v => total += v);
+  Object.values(state.extras).forEach(v => total += v);
+  return total;
+}
+
+// NEXT STEP
+function nextStep(current) {
+  // Validation
+  if (current === 0) {
+    const nome = document.getElementById('clienteName').value.trim();
+    if (!nome || !state.tipo.val) {
+      document.getElementById('val0').classList.add('show');
+      return;
+    }
+  }
+  if (current === 3 && !state.suporte.val) {
+    document.getElementById('val3').classList.add('show');
+    return;
+  }
+
+  document.getElementById('val0').classList.remove('show');
+  document.getElementById('val3').classList.remove('show');
+
+  const next = current + 1;
+
+  if (next === 4) {
+    buildResult();
+  }
+
+  document.getElementById('step' + current).classList.remove('active');
+  document.getElementById('step' + next).classList.add('active');
+  updateProgress(next);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function prevStep(current) {
+  const prev = current - 1;
+  document.getElementById('step' + current).classList.remove('active');
+  document.getElementById('step' + prev).classList.add('active');
+  updateProgress(prev);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// UPDATE PROGRESS
+function updateProgress(step) {
+  const pcts = [0, 25, 50, 75, 100];
+  document.getElementById('progressLine').style.width = pcts[step] + '%';
+
+  for (let i = 0; i < 5; i++) {
+    const dot = document.getElementById('dot' + i);
+    const lbl = document.getElementById('lbl' + i);
+    dot.classList.remove('active','done');
+    lbl.classList.remove('active');
+
+    if (i < step) { dot.classList.add('done'); dot.textContent = '✓'; }
+    else if (i === step) { dot.classList.add('active'); lbl.classList.add('active'); dot.textContent = i + 1 < 5 ? i + 1 : '✓'; }
+    else { dot.textContent = i + 1 < 5 ? i + 1 : '✓'; }
+  }
+}
+
+// BUILD RESULT
+function buildResult() {
+  const total = calcTotal();
+  const nome = document.getElementById('clienteName').value.trim();
+  const negocio = document.getElementById('clienteNegocio').value.trim();
+
+  // Título personalizado
+  const firstName = nome.split(' ')[0];
+  document.getElementById('resultTitle').textContent = negocio
+    ? `Orçamento para ${negocio}, ${firstName}!`
+    : `Pronto, ${firstName}! Seu orçamento está aqui.`;
+
+  document.getElementById('resultTotal').textContent = 'R$ ' + total.toLocaleString('pt-BR');
+
+  // Prazo estimado
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(today.getDate() + 1);
+  const end = new Date(today);
+  end.setDate(today.getDate() + 3);
+  const fmt = d => d.toLocaleDateString('pt-BR', {day:'2-digit', month:'long'});
+  document.getElementById('deadlineVal').textContent = `${fmt(start)} a ${fmt(end)}`;
+
+  const half = Math.ceil(total / 2 / 10) * 10;
+  document.getElementById('pay1').textContent = 'R$ ' + half.toLocaleString('pt-BR');
+  document.getElementById('pay2').textContent = 'R$ ' + (total - half).toLocaleString('pt-BR');
+
+  // Breakdown
+  const items = [];
+  const tipoNames = {restaurante:'Site Restaurante/Churrascaria',advocacia:'Site Escritório de Advocacia',clinica:'Site Clínica/Consultório',comercio:'Site Comércio/Loja',servicos:'Site Prestador de Serviços'};
+  items.push({name: tipoNames[state.tipo.val] || 'Site base', val: state.tipo.price, base: true});
+
+  const pageNames = {galeria:'Galeria de fotos',cardapio:'Cardápio/Serviços com filtros',depoimentos:'Depoimentos/Avaliações',equipe:'Seção de equipe',reserva:'Formulário de reserva'};
+  Object.entries(state.paginas).forEach(([k,v]) => { if (v > 0) items.push({name: pageNames[k] || k, val: v}); });
+
+  const extraNames = {animacoes:'Animações premium',mapa:'Mapa Google Maps',dominio:'Config. domínio próprio',seo:'SEO básico',logo:'Identidade visual'};
+  Object.entries(state.extras).forEach(([k,v]) => { if (v > 0) items.push({name: extraNames[k] || k, val: v}); });
+
+  const rbItems = document.getElementById('rbItems');
+  rbItems.innerHTML = items.map(i => `
+    <div class="rb-item">
+      <span class="rb-name ${i.base?'base':''}">${i.name}</span>
+      <span class="rb-val">R$ ${i.val.toLocaleString('pt-BR')}</span>
+    </div>
+  `).join('');
+
+  // Maintenance
+  if (state.suporte.val !== 'sem' && state.suporte.price > 0) {
+    document.getElementById('maintenanceInfo').style.display = 'block';
+    const maintNames = {basico:'Plano Básico (até 2 atualizações/mês)', completo:'Plano Completo (atualizações ilimitadas)'};
+    document.getElementById('maintName').textContent = maintNames[state.suporte.val] || '';
+    document.getElementById('maintVal').textContent = 'R$ ' + state.suporte.price + '/mês';
+  } else {
+    document.getElementById('maintenanceInfo').style.display = 'none';
+  }
+}
+
+// WHATSAPP
+function sendToWhatsApp() {
+  const total = calcTotal();
+  const nome = document.getElementById('clienteName').value.trim();
+  const negocio = document.getElementById('clienteNegocio').value.trim();
+  const tipoNames = {restaurante:'Restaurante/Churrascaria',advocacia:'Escritório de Advocacia',clinica:'Clínica/Consultório',comercio:'Comércio/Loja',servicos:'Prestador de Serviços'};
+  const tipo = tipoNames[state.tipo.val] || '';
+
+  const extras = [];
+  const pageNames = {galeria:'Galeria de fotos',cardapio:'Cardápio com filtros',depoimentos:'Depoimentos',equipe:'Equipe',reserva:'Formulário de reserva'};
+  const extraNames = {animacoes:'Animações premium',mapa:'Google Maps',dominio:'Domínio próprio',seo:'SEO básico',logo:'Identidade visual'};
+
+  Object.keys(state.paginas).forEach(k => { if (state.paginas[k] > 0 && pageNames[k]) extras.push(pageNames[k]); });
+  Object.keys(state.extras).forEach(k => { if (state.extras[k] > 0 && extraNames[k]) extras.push(extraNames[k]); });
+
+  const today = new Date();
+  const end = new Date(today); end.setDate(today.getDate() + 3);
+  const prazo = end.toLocaleDateString('pt-BR', {day:'2-digit', month:'long'});
+
+  const msg = `Olá Jadiel! Fiz o orçamento pelo site e gostaria de solicitar uma proposta.\n\n👤 *Nome:* ${nome}${negocio ? '\n🏢 *Negócio:* ' + negocio : ''}\n📋 *Tipo:* ${tipo}\n✅ *Itens:* ${extras.join(', ') || 'Pacote básico'}\n💰 *Orçamento:* R$ ${total.toLocaleString('pt-BR')}\n📅 *Prazo desejado:* até ${prazo}\n\nPodemos conversar?`;
+
+  window.open('https://wa.me/5549999940482?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// RESTART
+function restart() {
+  state.tipo = {val:null,price:0};
+  state.suporte = {val:null,price:0};
+  state.paginas = {};
+  state.extras = {};
+
+  document.getElementById('clienteName').value = '';
+  document.getElementById('clienteNegocio').value = '';
+  document.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.toggle-item').forEach(t => {
+    const price = parseInt(t.dataset.price) || 0;
+    if (price === 0) t.classList.add('on');
+    else t.classList.remove('on');
+  });
+
+  document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('step0').classList.add('active');
+  document.getElementById('maintenanceInfo').style.display = 'none';
+  updateProgress(0);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// Init toggles state
+document.querySelectorAll('.toggle-item.on').forEach(el => {
+  const key = el.dataset.key;
+  const price = parseInt(el.dataset.price) || 0;
+  const parent = el.parentElement;
+  const group = parent.id.includes('paginas') ? 'paginas' : 'extras';
+  if (price > 0) state[group][key] = price;
+});
+</script>
+</body>
+</html>
